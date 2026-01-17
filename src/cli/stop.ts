@@ -17,6 +17,17 @@ export function stopCommand(program: Command): void {
     .option('--json', 'Output JSON')
     .option('--format <type>', 'Output format: json|text', 'json')
     .action(async (opts) => {
+      // Parse durations first for immediate feedback on invalid input
+      let timeout: number;
+      let graceMs: number;
+      try {
+        timeout = parseDuration(opts.timeout);
+        graceMs = parseDuration(opts.grace);
+      } catch (err) {
+        console.error(err instanceof Error ? err.message : String(err));
+        process.exit(1);
+      }
+
       const name = opts.name;
       const explicitTapDir = opts.tapDir ? resolve(opts.tapDir) : undefined;
       const resolved = resolveService(name, process.cwd(), explicitTapDir);
@@ -27,8 +38,6 @@ export function stopCommand(program: Command): void {
         process.exit(1);
       }
 
-      const timeout = parseDuration(opts.timeout);
-      const graceMs = parseDuration(opts.grace);
       const client = new TapClient(socketPath, timeout + graceMs + 1000);
 
       try {

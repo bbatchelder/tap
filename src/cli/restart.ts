@@ -21,6 +21,17 @@ export function restartCommand(program: Command): void {
     .option('--json', 'Output JSON (default)')
     .option('--format <type>', 'Output format: json|text', 'json')
     .action(async (opts) => {
+      // Parse durations first for immediate feedback on invalid input
+      let timeoutMs: number;
+      let graceMs: number;
+      try {
+        timeoutMs = parseDuration(opts.timeout);
+        graceMs = parseDuration(opts.grace);
+      } catch (err) {
+        console.error(err instanceof Error ? err.message : String(err));
+        process.exit(1);
+      }
+
       const name = opts.name;
       const explicitTapDir = opts.tapDir ? resolve(opts.tapDir) : undefined;
       const resolved = resolveService(name, process.cwd(), explicitTapDir);
@@ -32,13 +43,13 @@ export function restartCommand(program: Command): void {
       }
 
       // Use a longer timeout for restart requests (not the readiness timeout)
-      const requestTimeout = parseDuration(opts.timeout) + 5000;
+      const requestTimeout = timeoutMs + 5000;
       const client = new TapClient(socketPath, requestTimeout);
 
       // Build restart request
       const body: RestartRequest = {
-        grace_ms: parseDuration(opts.grace),
-        timeout_ms: parseDuration(opts.timeout),
+        grace_ms: graceMs,
+        timeout_ms: timeoutMs,
         clear_logs: opts.clearLogs || false,
       };
 

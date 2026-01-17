@@ -16,6 +16,15 @@ export function statusCommand(program: Command): void {
     .option('--json', 'Output JSON (default)')
     .option('--format <type>', 'Output format: json|text', 'json')
     .action(async (opts) => {
+      // Parse duration first for immediate feedback on invalid input
+      let timeout: number;
+      try {
+        timeout = parseDuration(opts.timeout);
+      } catch (err) {
+        console.error(err instanceof Error ? err.message : String(err));
+        process.exit(1);
+      }
+
       const name = opts.name;
       const explicitTapDir = opts.tapDir ? resolve(opts.tapDir) : undefined;
       const resolved = resolveService(name, process.cwd(), explicitTapDir);
@@ -26,7 +35,6 @@ export function statusCommand(program: Command): void {
         process.exit(1);
       }
 
-      const timeout = parseDuration(opts.timeout);
       const client = new TapClient(socketPath, timeout);
 
       try {

@@ -29,6 +29,19 @@ export function observeCommand(program: Command): void {
     .option('--format <type>', 'Output format: json|text', 'json')
     .option('--json', 'Output JSON (default for observe)')
     .action(async (opts) => {
+      // Parse durations first for immediate feedback on invalid input
+      let timeout: number;
+      let sinceMs: number | undefined;
+      try {
+        timeout = parseDuration(opts.timeout);
+        if (opts.since) {
+          sinceMs = parseDuration(opts.since);
+        }
+      } catch (err) {
+        console.error(err instanceof Error ? err.message : String(err));
+        process.exit(1);
+      }
+
       const name = opts.name;
       const explicitTapDir = opts.tapDir ? resolve(opts.tapDir) : undefined;
       const resolved = resolveService(name, process.cwd(), explicitTapDir);
@@ -39,7 +52,6 @@ export function observeCommand(program: Command): void {
         process.exit(1);
       }
 
-      const timeout = parseDuration(opts.timeout);
       const client = new TapClient(socketPath, timeout);
 
       // Build query params
@@ -55,8 +67,8 @@ export function observeCommand(program: Command): void {
         }
       } else if (opts.sinceCursor) {
         params.cursor = parseInt(opts.sinceCursor);
-      } else if (opts.since) {
-        params.since_ms = parseDuration(opts.since);
+      } else if (sinceMs !== undefined) {
+        params.since_ms = sinceMs;
       } else if (opts.last) {
         params.last = parseInt(opts.last);
       } else {
