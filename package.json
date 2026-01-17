@@ -1,0 +1,36 @@
+{
+  "name": "tap",
+  "version": "0.1.0",
+  "description": "Process supervisor with queryable logs",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "tap": "./bin/tap"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "vitest",
+    "test:run": "vitest run"
+  },
+  "keywords": [
+    "process",
+    "supervisor",
+    "daemon",
+    "logs"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "commander": "^12.0.0",
+    "node-pty": "^1.0.0",
+    "undici": "^6.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.3.0",
+    "vitest": "^1.0.0"
+  }
+}

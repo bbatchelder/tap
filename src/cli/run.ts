@@ -1,0 +1,104 @@
+import { Command } from 'commander';
+import { resolve } from 'node:path';
+import { readFileSync } from 'node:fs';
+import { startRunner } from '../runner/index.js';
+
+/**
+ * Parse environment variable from string format "KEY=VALUE"
+ */
+function parseEnvVar(value: string, previous: Record<string, string>): Record<string, string> {
+  const idx = value.indexOf('=');
+  if (idx === -1) {
+    throw new Error(`Invalid env var format: "${value}". Expected KEY=VALUE`);
+  }
+  const key = value.slice(0, idx);
+  const val = value.slice(idx + 1);
+  return { ...previous, [key]: val };
+}
+
+/**
+ * Load environment variables from a file.
+ */
+function loadEnvFile(path: string): Record<string, string> {
+  const content = readFileSync(path, 'utf-8');
+  const env: Record<string, string> = {};
+
+  for (const line of content.split('\n')) {
+    const trimmed = line.trim();
+    // Skip empty lines and comments
+    if (!trimmed || trimmed.startsWith('#')) continue;
+
+    const idx = trimmed.indexOf('=');
+    if (idx === -1) continue;
+
+    const key = trimmed.slice(0, idx);
+    let val = trimmed.slice(idx + 1);
+
+    // Remove surrounding quotes
+    if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+      val = val.slice(1, -1);
+    }
+
+    env[key] = val;
+  }
+
+  return env;
+}
+
+export function runCommand(program: Command): void {
+  program
+    .command('run')
+    .description('Start a runner server and a child process')
+    .requiredOption('--name <string>', 'Service name')
+    .option('--tap-dir <path>', 'Override .tap directory', './.tap')
+    .option('--cwd <path>', 'Working directory for child', process.cwd())
+    .option('--env <KEY=VAL>', 'Add/override env var for child', parseEnvVar, {})
+    .option('--env-file <path>', 'Load env vars from file')
+    .option('--pty', 'Use PTY for child (may require native module rebuild)')
+    .option('--no-pty', 'Use pipes instead of PTY (default)')
+    .option('--forward', 'Forward child output to stdout (default)', true)
+    .option('--no-forward', 'Do not forward child output')
+    .option('--buffer-lines <N>', 'Ring buffer max events', '5000')
+    .option('--buffer-bytes <N>', 'Ring buffer max bytes', '10000000')
+    .option('--print-connection', 'Print socket path and PID on startup')
+    .option('--ready <pattern>', 'Substring readiness indicator')
+    .option('--ready-regex <regex>', 'Regex readiness indicator')
+    .option('--verbose', 'Verbose output')
+    .argument('<command...>', 'Command to run')
+    .action(async (command: string[], opts) => {
+      // Load env file if specified
+      let env = opts.env;
+      if (opts.envFile) {
+        try {
+          const fileEnv = loadEnvFile(opts.envFile);
+          env = { ...fileEnv, ...env };
+        } catch (err) {
+          console.error(`Failed to load env file: ${err instanceof Error ? err.message : err}`);
+          process.exit(1);
+        }
+      }
+
+      // Default to pipes (no PTY) - use PTY only if explicitly requested
+      const usePty = opts.pty === true;
+
+      try {
+        await startRunner({
+          name: opts.name,
+          tapDir: opts.tapDir,
+          command,
+          cwd: resolve(opts.cwd),
+          env,
+          usePty,
+          forward: opts.forward,
+          bufferLines: parseInt(opts.bufferLines),
+          bufferBytes: parseInt(opts.bufferBytes),
+          printConnection: opts.printConnection || false,
+          readyPattern: opts.ready,
+          readyRegex: opts.readyRegex,
+        });
+      } catch (err) {
+        console.error(`Failed to start runner: ${err instanceof Error ? err.message : err}`);
+        process.exit(1);
+      }
+    });
+}
