@@ -14,8 +14,18 @@ Runs in foreground. For background execution, use `&` or run in a separate termi
 ```bash
 tap observe --name <service> --last 50
 tap observe --name <service> --since 5m
-tap observe --name <service> --grep "error" --format text
+tap observe --name <service> --grep "error"
 ```
+
+Output (text format is default):
+```
+Server started on port 3000
+Handling request GET /api/users
+---
+cursor=25 truncated=false dropped=false matches=2
+```
+
+The `---` line separates log content from metadata. Use the trailer for pagination.
 
 ### Check status
 ```bash
@@ -51,7 +61,7 @@ tap status --name api
 
 ### Check for errors in recent output
 ```bash
-tap observe --name api --grep "error" --last 100 --format text
+tap observe --name api --grep "error" --last 100
 ```
 
 ### Restart and wait for ready
@@ -64,28 +74,38 @@ tap restart --name api --ready "listening on port" --timeout 30s
 tap stop --name api
 ```
 
-## JSON Output
+## Output Formats
 
-All commands output JSON by default (except `tap ls` which defaults to text). Key response fields:
+### Text Format (default for observe and ls)
+```
+Server started on port 3000
+Handling request GET /api/users
+---
+cursor=25 truncated=false dropped=false matches=2
+```
 
-**status response:**
+Optional prefixes for debugging:
+```bash
+tap observe --name api --show-seq --show-stream
+```
+```
+[1] [stdout] Server started on port 3000
+[2] [stderr] Warning: deprecated API
+---
+cursor=3 truncated=false dropped=false matches=2
+```
+
+### JSON Format
+Use `--json` or `--format json` when you need structured data:
+
+```bash
+tap status --name api
+```
 ```json
 {
-  "name": "api",
   "child_state": "running",
   "child_pid": 12345,
   "uptime_ms": 3600000
-}
-```
-
-**observe response:**
-```json
-{
-  "events": [
-    {"seq": 1, "ts": 1699900000000, "stream": "stdout", "text": "Server started"}
-  ],
-  "cursor_next": 2,
-  "truncated": false
 }
 ```
 

@@ -7,6 +7,21 @@ import { parseDuration } from '../utils/duration.js';
 import { getCursor, setCursor } from '../client/cursor-cache.js';
 import { formatError, NoRunnerError } from '../utils/errors.js';
 
+/**
+ * Format a timestamp as relative time (e.g., "2s ago", "5m ago").
+ */
+function formatRelativeTime(ts: number): string {
+  const now = Date.now();
+  const diff = now - ts;
+
+  if (diff < 0) return 'now';
+  if (diff < 1000) return `${diff}ms ago`;
+  if (diff < 60000) return `${Math.floor(diff / 1000)}s ago`;
+  if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
+  if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
+  return `${Math.floor(diff / 86400000)}d ago`;
+}
+
 export function observeCommand(program: Command): void {
   program
     .command('observe')
@@ -26,8 +41,11 @@ export function observeCommand(program: Command): void {
     .option('--stream <type>', 'Stream filter: combined|stdout|stderr', 'combined')
     .option('--max-lines <N>', 'Max lines to return', '80')
     .option('--max-bytes <N>', 'Max bytes to return', '32768')
-    .option('--format <type>', 'Output format: json|text', 'json')
-    .option('--json', 'Output JSON (default for observe)')
+    .option('--format <type>', 'Output format: text|json', 'text')
+    .option('--json', 'Output JSON')
+    .option('--show-seq', 'Prepend sequence number to each line')
+    .option('--show-ts', 'Prepend relative timestamp to each line')
+    .option('--show-stream', 'Prepend stream (stdout/stderr) to each line')
     .action(async (opts) => {
       // Parse durations first for immediate feedback on invalid input
       let timeout: number;
@@ -103,12 +121,26 @@ export function observeCommand(program: Command): void {
         // Save cursor for --since-last
         setCursor(tapDir, name, result.cursor_next);
 
-        if (opts.format === 'text') {
-          for (const event of result.events) {
-            console.log(event.text);
-          }
+        const useJson = opts.json || opts.format === 'json';
+
+        if (useJson) {
+          // JSON format - output full response (without name)
+          const { name: _, ...rest } = result;
+          console.log(JSON.stringify(rest, null, 2));
         } else {
-          console.log(JSON.stringify(result, null, 2));
+          // Text format - output lines with optional prefixes
+          for (const event of result.events) {
+            let prefix = '';
+            if (opts.showSeq) prefix += `[${event.seq}] `;
+            if (opts.showTs) prefix += `[${formatRelativeTime(event.ts)}] `;
+            if (opts.showStream && event.stream !== 'combined') {
+              prefix += `[${event.stream}] `;
+            }
+            console.log(prefix + event.text);
+          }
+          // Append metadata trailer
+          console.log('---');
+          console.log(`cursor=${result.cursor_next} truncated=${result.truncated} dropped=${result.dropped} matches=${result.match_count}`);
         }
       } catch (err) {
         console.error(JSON.stringify(formatError(err)));

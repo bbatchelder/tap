@@ -139,7 +139,7 @@ tap observe --name <service> [options]
 | Option | Description | Default |
 |--------|-------------|---------|
 | `--name <string>` | Service name (required) | - |
-| `--tap-dir <path>` | Override .tap directory | `./.tap` |
+| `--tap-dir <path>` | Override .tap directory | - |
 | `--since <duration>` | Events since duration ago (e.g., `5m`, `1h`) | - |
 | `--last <N>` | Last N events | `80` |
 | `--since-cursor <seq>` | Events since cursor sequence | - |
@@ -151,12 +151,16 @@ tap observe --name <service> [options]
 | `--stream <type>` | Filter: `combined`, `stdout`, `stderr` | `combined` |
 | `--max-lines <N>` | Max lines to return | `80` |
 | `--max-bytes <N>` | Max bytes to return | `32768` |
-| `--format <type>` | Output format: `json`, `text` | `json` |
+| `--format <type>` | Output format: `text`, `json` | `text` |
+| `--json` | Output JSON | Off |
+| `--show-seq` | Prepend sequence number to each line | Off |
+| `--show-ts` | Prepend relative timestamp to each line | Off |
+| `--show-stream` | Prepend stream (stdout/stderr) to each line | Off |
 
 **Examples:**
 
 ```bash
-# Get last 100 lines
+# Get last 100 lines (text format is default)
 tap observe --name api --last 100
 
 # Get logs from the last 5 minutes
@@ -171,9 +175,23 @@ tap observe --name api --stream stderr
 # Continuous polling (since last cursor)
 tap observe --name api --since-last
 
-# Plain text output
-tap observe --name api --format text
+# With sequence numbers and stream info
+tap observe --name api --show-seq --show-stream
+
+# JSON output
+tap observe --name api --json
 ```
+
+**Sample output (text):**
+
+```
+Server started on port 3000
+Handling request GET /api/users
+---
+cursor=25 truncated=false dropped=false matches=2
+```
+
+The `---` line separates log content from metadata for easy parsing.
 
 ### `tap restart`
 
