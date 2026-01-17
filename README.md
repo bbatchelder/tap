@@ -1,0 +1,307 @@
+# tap
+
+A process supervisor with queryable logs. Run your services in the background and query their output through a Unix socket API.
+
+## Why tap?
+
+- **Queryable logs**: Filter, search, and paginate through output without log files
+- **Ring buffer**: Keeps recent output in memory with configurable limits
+- **Unix socket API**: Query logs programmatically from any language
+- **Readiness checks**: Wait for a pattern in output before considering a service ready
+- **Zero dependencies at runtime**: Pure Node.js with Unix sockets
+
+## Installation
+
+```bash
+npm install
+npm run build
+```
+
+## Quick Start
+
+```bash
+# Start a service
+tap run --name myapp -- node server.js
+
+# View recent logs
+tap observe --name myapp --last 50
+
+# Check status
+tap status --name myapp
+
+# Restart the service
+tap restart --name myapp
+
+# Stop everything
+tap stop --name myapp
+```
+
+## Commands
+
+### `tap run`
+
+Start a runner server and child process.
+
+```bash
+tap run --name <service> [options] -- <command...>
+```
+
+**Options:**
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `--name <string>` | Service name (required) | - |
+| `--tap-dir <path>` | Override .tap directory | `./.tap` |
+| `--cwd <path>` | Working directory for child | Current directory |
+| `--env <KEY=VAL>` | Add/override env var (repeatable) | - |
+| `--env-file <path>` | Load env vars from file | - |
+| `--pty` | Use PTY for child process | Off |
+| `--no-forward` | Don't forward output to stdout | Forward on |
+| `--buffer-lines <N>` | Ring buffer max events | `5000` |
+| `--buffer-bytes <N>` | Ring buffer max bytes | `10000000` |
+| `--ready <pattern>` | Substring to wait for in output | - |
+| `--ready-regex <regex>` | Regex to wait for in output | - |
+| `--print-connection` | Print socket path and PID on startup | Off |
+
+**Examples:**
+
+```bash
+# Basic usage
+tap run --name api -- node server.js
+
+# With environment variables
+tap run --name api --env PORT=3000 --env NODE_ENV=production -- node server.js
+
+# With env file and readiness check
+tap run --name api --env-file .env --ready "listening on port" -- node server.js
+
+# With PTY (for programs that need a terminal)
+tap run --name app --pty -- npm run dev
+```
+
+### `tap observe`
+
+Fetch logs from a running service.
+
+```bash
+tap observe --name <service> [options]
+```
+
+**Options:**
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `--name <string>` | Service name (required) | - |
+| `--tap-dir <path>` | Override .tap directory | `./.tap` |
+| `--since <duration>` | Events since duration ago (e.g., `5m`, `1h`) | - |
+| `--last <N>` | Last N events | `80` |
+| `--since-cursor <seq>` | Events since cursor sequence | - |
+| `--since-last` | Since last observed cursor | - |
+| `--grep <pattern>` | Filter by pattern | - |
+| `--regex` | Treat grep as regex | Off |
+| `--case-sensitive` | Case-sensitive matching | Off |
+| `--invert` | Invert match | Off |
+| `--stream <type>` | Filter: `combined`, `stdout`, `stderr` | `combined` |
+| `--max-lines <N>` | Max lines to return | `80` |
+| `--max-bytes <N>` | Max bytes to return | `32768` |
+| `--format <type>` | Output format: `json`, `text` | `json` |
+
+**Examples:**
+
+```bash
+# Get last 100 lines
+tap observe --name api --last 100
+
+# Get logs from the last 5 minutes
+tap observe --name api --since 5m
+
+# Search for errors
+tap observe --name api --grep "error" --case-sensitive
+
+# Get only stderr
+tap observe --name api --stream stderr
+
+# Continuous polling (since last cursor)
+tap observe --name api --since-last
+
+# Plain text output
+tap observe --name api --format text
+```
+
+### `tap restart`
+
+Restart the child process without stopping the runner.
+
+```bash
+tap restart --name <service> [options]
+```
+
+**Options:**
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `--name <string>` | Service name (required) | - |
+| `--tap-dir <path>` | Override .tap directory | `./.tap` |
+| `--timeout <duration>` | Readiness wait timeout | `20s` |
+| `--ready <pattern>` | Substring readiness pattern | - |
+| `--ready-regex <regex>` | Regex readiness pattern | - |
+| `--grace <duration>` | Grace period before SIGKILL | `2s` |
+| `--clear-logs` | Clear ring buffer on restart | Off |
+| `--format <type>` | Output format: `json`, `text` | `json` |
+
+**Examples:**
+
+```bash
+# Simple restart
+tap restart --name api
+
+# Restart with readiness check
+tap restart --name api --ready "listening on port" --timeout 30s
+
+# Clear logs on restart
+tap restart --name api --clear-logs
+```
+
+### `tap stop`
+
+Stop the runner and child process.
+
+```bash
+tap stop --name <service> [options]
+```
+
+**Options:**
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `--name <string>` | Service name (required) | - |
+| `--tap-dir <path>` | Override .tap directory | `./.tap` |
+| `--timeout <duration>` | Request timeout | `5s` |
+| `--grace <duration>` | Grace period before SIGKILL | `2s` |
+| `--format <type>` | Output format: `json`, `text` | `json` |
+
+**Examples:**
+
+```bash
+# Stop a service
+tap stop --name api
+
+# Stop with longer grace period
+tap stop --name api --grace 10s
+```
+
+### `tap status`
+
+Get runner and child status.
+
+```bash
+tap status --name <service> [options]
+```
+
+**Options:**
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `--name <string>` | Service name (required) | - |
+| `--tap-dir <path>` | Override .tap directory | `./.tap` |
+| `--timeout <duration>` | Request timeout | `5s` |
+| `--format <type>` | Output format: `json`, `text` | `json` |
+
+**Examples:**
+
+```bash
+# Get status as JSON
+tap status --name api
+
+# Get human-readable status
+tap status --name api --format text
+```
+
+**Sample output (text):**
+
+```
+Name: api
+State: running
+Runner PID: 12345
+Child PID: 12346
+Uptime: 2h 15m 30s
+PTY: false
+Forward: true
+Buffer: 1234/5000 lines, 256KB/9765KB
+```
+
+### `tap ls`
+
+List all known services.
+
+```bash
+tap ls [options]
+```
+
+**Options:**
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `--tap-dir <path>` | Override .tap directory | `./.tap` |
+| `--format <type>` | Output format: `json`, `text` | `text` |
+
+**Examples:**
+
+```bash
+# List services
+tap ls
+
+# List as JSON
+tap ls --json
+```
+
+**Sample output:**
+
+```
+NAME                STATE       PID       UPTIME
+----------------------------------------------------
+api                 running     12345     2h 15m 30s
+worker              running     12350     1h 45m 12s
+```
+
+## How It Works
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                     tap run                             │
+│  ┌─────────────────────────────────────────────────┐   │
+│  │              Runner Server                       │   │
+│  │  ┌──────────┐    ┌──────────────────────────┐   │   │
+│  │  │  Child   │───▶│      Ring Buffer         │   │   │
+│  │  │ Process  │    │  (stdout/stderr lines)   │   │   │
+│  │  └──────────┘    └──────────────────────────┘   │   │
+│  │       │                        │                │   │
+│  │       ▼                        ▼                │   │
+│  │   [forward]              Unix Socket            │   │
+│  │       │                   (.tap/name.sock)      │   │
+│  └───────│────────────────────────│────────────────┘   │
+│          ▼                        │                    │
+│       stdout                      │                    │
+└───────────────────────────────────│────────────────────┘
+                                    │
+                                    ▼
+                    ┌───────────────────────────────┐
+                    │   tap observe / status / ...  │
+                    │        (HTTP over UDS)        │
+                    └───────────────────────────────┘
+```
+
+1. **Runner**: The `tap run` command starts a runner process that:
+   - Spawns and manages a child process
+   - Captures stdout/stderr into a ring buffer
+   - Exposes a Unix socket HTTP API
+
+2. **Ring Buffer**: Keeps the last N lines (default 5000) or N bytes (default 10MB) of output in memory. Old entries are evicted when limits are reached.
+
+3. **Unix Socket API**: All commands except `run` communicate with the runner over HTTP via Unix domain sockets at `.tap/<name>.sock`.
+
+4. **Readiness**: The runner can watch for a pattern in output to determine when the child is ready, useful for deployment scripts.
+
+## License
+
+MIT
