@@ -1,4 +1,5 @@
 import type { LogEvent } from '../protocol/types.js';
+import { createSafeRegex } from '../utils/validation.js';
 
 export interface QueryOptions {
   // Window selectors (exactly one)
@@ -107,7 +108,7 @@ export class RingBuffer {
 
       if (opts.regex) {
         const flags = opts.caseSensitive ? '' : 'i';
-        const re = new RegExp(opts.grep, flags);
+        const re = createSafeRegex(opts.grep, flags);
         matcher = (text: string) => re.test(text);
       } else {
         const pattern = opts.caseSensitive ? opts.grep : opts.grep.toLowerCase();
@@ -206,7 +207,7 @@ export class RingBuffer {
     let matcher: (text: string) => boolean;
     if (isRegex) {
       const flags = caseSensitive ? '' : 'i';
-      const re = new RegExp(pattern, flags);
+      const re = createSafeRegex(pattern, flags);
       matcher = (text: string) => re.test(text);
     } else {
       const p = caseSensitive ? pattern : pattern.toLowerCase();

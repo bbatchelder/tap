@@ -248,10 +248,26 @@ export class RunnerServer {
     });
   }
 
+  private static readonly MAX_BODY_SIZE = 1024 * 1024; // 1MB limit
+
   private readBody<T>(req: IncomingMessage): Promise<T> {
     return new Promise((resolve, reject) => {
       let data = '';
-      req.on('data', (chunk) => (data += chunk));
+      let size = 0;
+
+      req.on('data', (chunk: Buffer | string) => {
+        const chunkSize = Buffer.isBuffer(chunk) ? chunk.length : Buffer.byteLength(chunk);
+        size += chunkSize;
+
+        if (size > RunnerServer.MAX_BODY_SIZE) {
+          req.destroy();
+          reject(new Error('Request body too large'));
+          return;
+        }
+
+        data += chunk;
+      });
+
       req.on('end', () => {
         try {
           resolve(data ? JSON.parse(data) : ({} as T));
@@ -259,6 +275,7 @@ export class RunnerServer {
           reject(new Error('Invalid JSON body'));
         }
       });
+
       req.on('error', reject);
     });
   }

@@ -1,10 +1,13 @@
 import { homedir } from 'node:os';
 import { join, resolve } from 'node:path';
+import { validateServiceName } from './validation.js';
 
 /**
  * Get the socket path for a service.
+ * Validates the service name to prevent path traversal attacks.
  */
 export function getSocketPath(tapDir: string, name: string): string {
+  validateServiceName(name);
   return join(resolve(tapDir), `${name}.sock`);
 }
 

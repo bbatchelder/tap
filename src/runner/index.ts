@@ -3,6 +3,7 @@ import { ChildManager, ChildConfig } from './child.js';
 import { RunnerServer } from './server.js';
 import { setupSignalHandlers } from './signals.js';
 import { ensureTapDir, getSocketPath } from '../utils/paths.js';
+import { createSafeRegex } from '../utils/validation.js';
 
 export interface RunnerConfig {
   name: string;
@@ -77,7 +78,7 @@ export async function startRunner(config: RunnerConfig): Promise<void> {
 
       let matches = false;
       if (isRegex) {
-        matches = new RegExp(readyPattern, 'i').test(text);
+        matches = createSafeRegex(readyPattern, 'i').test(text);
       } else {
         matches = text.toLowerCase().includes(readyPattern.toLowerCase());
       }
