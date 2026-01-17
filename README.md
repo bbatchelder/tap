@@ -302,6 +302,38 @@ worker              running     12350     1h 45m 12s
 
 4. **Readiness**: The runner can watch for a pattern in output to determine when the child is ready, useful for deployment scripts.
 
+## Security Model
+
+**The trust boundary is filesystem access to the `.tap/` directory.**
+
+Anyone who can read/write to the `.tap` directory can fully control all tap processes in that directory:
+- Query logs from any service
+- Restart any child process
+- Stop any runner
+
+### Protections
+
+- The `.tap/` directory is created with mode `0700` (owner-only access)
+- Service names are validated to prevent path traversal attacks
+- Regex patterns are validated to prevent ReDoS attacks
+- Request body sizes are limited to prevent memory exhaustion
+
+### Implications
+
+| Environment | Security |
+|-------------|----------|
+| Single-user machine | Secure - only you can access your `.tap/` directory |
+| Multi-user, separate working dirs | Secure - each user has their own `.tap/` |
+| Shared directory (e.g., `/tmp`) | **Not secure** - anyone with directory access controls your processes |
+
+### Not Protected Against
+
+- **Root**: By design, root can access anything
+- **Same-user processes**: Other processes running as your user can access the socket
+- **Parent directory access**: Users with write access to the parent of `.tap/` could potentially manipulate it
+
+This follows the standard Unix security model used by SSH agent sockets, Docker sockets, and tmux.
+
 ## License
 
 MIT
