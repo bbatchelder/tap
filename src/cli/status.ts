@@ -1,7 +1,8 @@
 import { Command } from 'commander';
 import { existsSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { TapClient } from '../client/index.js';
-import { getSocketPath } from '../utils/paths.js';
+import { resolveService } from '../utils/discovery.js';
 import { parseDuration, formatDuration } from '../utils/duration.js';
 import { formatError, NoRunnerError } from '../utils/errors.js';
 
@@ -9,15 +10,16 @@ export function statusCommand(program: Command): void {
   program
     .command('status')
     .description('Get runner and child status')
-    .requiredOption('--name <string>', 'Service name')
-    .option('--tap-dir <path>', 'Override .tap directory', './.tap')
+    .requiredOption('--name <string>', 'Service name (e.g., "api" or "frontend:api")')
+    .option('--tap-dir <path>', 'Override .tap directory (disables recursive search)')
     .option('--timeout <duration>', 'Request timeout', '5s')
     .option('--json', 'Output JSON (default)')
     .option('--format <type>', 'Output format: json|text', 'json')
     .action(async (opts) => {
       const name = opts.name;
-      const tapDir = opts.tapDir;
-      const socketPath = getSocketPath(tapDir, name);
+      const explicitTapDir = opts.tapDir ? resolve(opts.tapDir) : undefined;
+      const resolved = resolveService(name, process.cwd(), explicitTapDir);
+      const { socketPath } = resolved!;
 
       if (!existsSync(socketPath)) {
         console.error(JSON.stringify(formatError(new NoRunnerError(name, socketPath))));

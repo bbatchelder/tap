@@ -97,9 +97,27 @@ All commands output JSON by default (except `tap ls` which defaults to text). Ke
 }
 ```
 
+## Multi-Directory Support
+
+tap discovers services recursively in subdirectories. Use colon-separated names for services in subdirectories:
+
+```bash
+# Start services in subdirectories
+tap run --name frontend:dev -- npm run dev    # Creates frontend/.tap/dev.sock
+tap run --name backend:api -- node server.js  # Creates backend/.tap/api.sock
+
+# List all services from project root
+tap ls
+
+# Query by prefixed name
+tap observe --name frontend:dev --last 20
+tap stop --name backend:api
+```
+
 ## Important Notes
 
-- Services are identified by `--name` within a `.tap/` directory
-- Default `.tap/` is in current working directory
+- Services are identified by `--name` - use `prefix:name` for subdirectories
+- `tap ls` recursively finds all `.tap/` directories
 - Logs are kept in memory (ring buffer), not persisted to disk
 - If a service isn't found, you'll get a `no_runner` error - start it first with `tap run`
+- Use `--tap-dir` to disable recursive search and target a specific directory

@@ -36,6 +36,53 @@ tap restart --name myapp
 tap stop --name myapp
 ```
 
+## Multi-Directory Support
+
+tap automatically discovers services across subdirectories. This is useful for monorepos or projects with multiple components.
+
+### Service Naming
+
+Services in subdirectories use a colon-separated prefix:
+
+| Socket Location | Service Name |
+|-----------------|--------------|
+| `.tap/api.sock` | `api` |
+| `frontend/.tap/web.sock` | `frontend:web` |
+| `backend/.tap/api.sock` | `backend:api` |
+| `services/auth/.tap/main.sock` | `services/auth:main` |
+
+### Example: Monorepo Setup
+
+```bash
+# Start services in different directories
+cd ~/myproject
+tap run --name frontend:dev -- npm run dev    # Creates frontend/.tap/dev.sock
+tap run --name backend:api -- node server.js  # Creates backend/.tap/api.sock
+tap run --name worker -- node worker.js       # Creates .tap/worker.sock
+
+# List all services from project root
+tap ls
+# NAME              STATE       PID       UPTIME
+# ------------------------------------------------
+# frontend:dev      running     12345     5m 30s
+# backend:api       running     12346     5m 28s
+# worker            running     12347     5m 25s
+
+# Query any service by name
+tap observe --name frontend:dev --last 20
+tap status --name backend:api
+tap restart --name worker
+```
+
+### Disabling Discovery
+
+Use `--tap-dir` to target a specific directory (disables recursive search):
+
+```bash
+tap ls --tap-dir ./backend/.tap
+tap observe --name api --tap-dir ./backend/.tap
+```
+
 ## Commands
 
 ### `tap run`
@@ -232,7 +279,7 @@ Buffer: 1234/5000 lines, 256KB/9765KB
 
 ### `tap ls`
 
-List all known services.
+List all known services. Recursively discovers services in subdirectories.
 
 ```bash
 tap ls [options]
@@ -242,17 +289,20 @@ tap ls [options]
 
 | Option | Description | Default |
 |--------|-------------|---------|
-| `--tap-dir <path>` | Override .tap directory | `./.tap` |
+| `--tap-dir <path>` | Override .tap directory (disables recursive search) | - |
 | `--format <type>` | Output format: `json`, `text` | `text` |
 
 **Examples:**
 
 ```bash
-# List services
+# List all services (recursive)
 tap ls
 
 # List as JSON
 tap ls --json
+
+# List only services in a specific directory
+tap ls --tap-dir ./backend/.tap
 ```
 
 **Sample output:**
@@ -261,7 +311,8 @@ tap ls --json
 NAME                STATE       PID       UPTIME
 ----------------------------------------------------
 api                 running     12345     2h 15m 30s
-worker              running     12350     1h 45m 12s
+frontend:web        running     12348     1h 20m 15s
+backend:worker      running     12350     1h 45m 12s
 ```
 
 ## How It Works

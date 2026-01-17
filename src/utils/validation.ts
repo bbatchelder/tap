@@ -3,18 +3,50 @@
  */
 
 /**
+ * Validate a single name segment (no colons).
+ */
+function validateNameSegment(segment: string, context: string): void {
+  if (!segment) {
+    throw new Error(`${context} cannot be empty`);
+  }
+  if (segment.length > 64) {
+    throw new Error(`${context} must be 64 characters or less`);
+  }
+  if (!/^[a-zA-Z0-9_-]+$/.test(segment)) {
+    throw new Error(`${context} must contain only alphanumeric characters, hyphens, and underscores`);
+  }
+}
+
+/**
  * Validate that a service name contains only safe characters.
+ * Supports prefixed names like "frontend:api" for services in subdirectories.
  * Prevents path traversal and other injection attacks.
  */
 export function validateServiceName(name: string): void {
   if (!name || typeof name !== 'string') {
     throw new Error('Service name is required');
   }
-  if (name.length > 64) {
-    throw new Error('Service name must be 64 characters or less');
+  if (name.length > 128) {
+    throw new Error('Service name must be 128 characters or less');
   }
-  if (!/^[a-zA-Z0-9_-]+$/.test(name)) {
-    throw new Error('Service name must contain only alphanumeric characters, hyphens, and underscores');
+
+  // Split by colon - prefix:baseName or just baseName
+  const colonIndex = name.lastIndexOf(':');
+  if (colonIndex === -1) {
+    // Simple name without prefix
+    validateNameSegment(name, 'Service name');
+  } else {
+    // Prefixed name - validate prefix path segments and base name
+    const prefix = name.slice(0, colonIndex);
+    const baseName = name.slice(colonIndex + 1);
+
+    // Prefix can contain path separators (/) for nested directories
+    const prefixSegments = prefix.split('/');
+    for (const segment of prefixSegments) {
+      validateNameSegment(segment, 'Path segment');
+    }
+
+    validateNameSegment(baseName, 'Service name');
   }
 }
 

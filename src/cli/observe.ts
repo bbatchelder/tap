@@ -1,7 +1,8 @@
 import { Command } from 'commander';
 import { existsSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { TapClient, LogsParams } from '../client/index.js';
-import { getSocketPath } from '../utils/paths.js';
+import { resolveService } from '../utils/discovery.js';
 import { parseDuration } from '../utils/duration.js';
 import { getCursor, setCursor } from '../client/cursor-cache.js';
 import { formatError, NoRunnerError } from '../utils/errors.js';
@@ -10,8 +11,8 @@ export function observeCommand(program: Command): void {
   program
     .command('observe')
     .description('Fetch logs from runner')
-    .requiredOption('--name <string>', 'Service name')
-    .option('--tap-dir <path>', 'Override .tap directory', './.tap')
+    .requiredOption('--name <string>', 'Service name (e.g., "api" or "frontend:api")')
+    .option('--tap-dir <path>', 'Override .tap directory (disables recursive search)')
     .option('--timeout <duration>', 'Request timeout', '5s')
     .option('--since <duration>', 'Events since duration ago')
     .option('--last <N>', 'Last N events')
@@ -29,8 +30,9 @@ export function observeCommand(program: Command): void {
     .option('--json', 'Output JSON (default for observe)')
     .action(async (opts) => {
       const name = opts.name;
-      const tapDir = opts.tapDir;
-      const socketPath = getSocketPath(tapDir, name);
+      const explicitTapDir = opts.tapDir ? resolve(opts.tapDir) : undefined;
+      const resolved = resolveService(name, process.cwd(), explicitTapDir);
+      const { socketPath, tapDir } = resolved!;
 
       if (!existsSync(socketPath)) {
         console.error(JSON.stringify(formatError(new NoRunnerError(name, socketPath))));

@@ -2,6 +2,7 @@ import { Command } from 'commander';
 import { resolve } from 'node:path';
 import { readFileSync } from 'node:fs';
 import { startRunner } from '../runner/index.js';
+import { getTapDirForService, parseServiceName } from '../utils/discovery.js';
 
 /**
  * Parse environment variable from string format "KEY=VALUE"
@@ -96,8 +97,8 @@ export function runCommand(program: Command): void {
   program
     .command('run')
     .description('Start a runner server and a child process')
-    .requiredOption('--name <string>', 'Service name')
-    .option('--tap-dir <path>', 'Override .tap directory', './.tap')
+    .requiredOption('--name <string>', 'Service name (e.g., "api" or "frontend:api")')
+    .option('--tap-dir <path>', 'Override .tap directory (disables prefix-based directory)')
     .option('--cwd <path>', 'Working directory for child', process.cwd())
     .option('--env <KEY=VAL>', 'Add/override env var for child', parseEnvVar, {})
     .option('--env-file <path>', 'Load env vars from file')
@@ -125,13 +126,22 @@ export function runCommand(program: Command): void {
         }
       }
 
+      // Parse service name - handle prefixed names like "frontend:api"
+      const { baseName } = parseServiceName(opts.name);
+
+      // Determine tap directory
+      // If explicit --tap-dir, use it. Otherwise derive from prefix.
+      const tapDir = opts.tapDir
+        ? resolve(opts.tapDir)
+        : getTapDirForService(opts.name, process.cwd());
+
       // Default to pipes (no PTY) - use PTY only if explicitly requested
       const usePty = opts.pty === true;
 
       try {
         await startRunner({
-          name: opts.name,
-          tapDir: opts.tapDir,
+          name: baseName,  // Use base name for socket file
+          tapDir,
           command,
           cwd: resolve(opts.cwd),
           env,
