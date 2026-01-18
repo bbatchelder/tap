@@ -1,17 +1,29 @@
 {
-  "name": "tap",
+  "name": "@cerebralutopia/tap",
   "version": "0.1.0",
   "description": "Process supervisor with queryable logs",
   "type": "module",
   "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
   "bin": {
     "tap": "./bin/tap"
   },
+  "files": [
+    "dist",
+    "bin"
+  ],
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
     "test": "vitest",
-    "test:run": "vitest run"
+    "test:run": "vitest run",
+    "prepublishOnly": "npm run build"
   },
   "keywords": [
     "process",
@@ -19,7 +31,16 @@
     "daemon",
     "logs"
   ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bbatchelder/tap.git"
+  },
+  "author": "bbatchelder",
   "license": "MIT",
+  "homepage": "https://github.com/bbatchelder/tap#readme",
+  "bugs": {
+    "url": "https://github.com/bbatchelder/tap/issues"
+  },
   "engines": {
     "node": ">=18.0.0"
   },
