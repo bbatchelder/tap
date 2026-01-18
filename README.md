@@ -28,45 +28,45 @@ The `tap` command is a process supervisor with queryable logs. Use it to monitor
 tap ls                             # Shows name, state, PID, uptime
 
 # View process status
-tap status --name website --format text
+tap status website --format text
 
 # View logs
-tap observe --name website --last 50           # Last 50 lines
-tap observe --name website --since 5m          # Logs from last 5 minutes
-tap observe --name website --stream stderr     # Only stderr output
-tap observe --name website --show-seq --show-stream  # With sequence numbers and stream labels
+tap observe website --last 50           # Last 50 lines
+tap observe website --since 5m          # Logs from last 5 minutes
+tap observe website --stream stderr     # Only stderr output
+tap observe website --show-seq --show-stream  # With sequence numbers and stream labels
 
 # Search logs
-tap observe --name website --grep "error"                    # Substring search
-tap observe --name website --grep "error|warning" --regex    # Regex search
-tap observe --name website --grep "Error" --case-sensitive   # Case-sensitive
+tap observe website --grep "error"                    # Substring search
+tap observe website --grep "error|warning" --regex    # Regex search
+tap observe website --grep "Error" --case-sensitive   # Case-sensitive
 
 # Restart a process (useful for workers that don't hot reload)
-tap restart --name website
-tap restart --name worker          # Worker process requires restart after code changes
+tap restart website
+tap restart worker          # Worker process requires restart after code changes
 ```
 
 **When to restart processes:**
-- **Worker processes**: Don't hot reload. After modifying worker code, use `tap restart --name worker`.
-- **Next.js server**: Restart after running `npx prisma generate` to pick up the regenerated Prisma client. Use `tap restart --name website`.
+- **Worker processes**: Don't hot reload. After modifying worker code, use `tap restart worker`.
+- **Next.js server**: Restart after running `npx prisma generate` to pick up the regenerated Prisma client. Use `tap restart website`.
 
 ## Quick Start
 
 ```bash
 # Start a service
-tap run --name myapp -- node server.js
+tap run myapp -- node server.js
 
 # View recent logs
-tap observe --name myapp --last 50
+tap observe myapp --last 50
 
 # Check status
-tap status --name myapp
+tap status myapp
 
 # Restart the service
-tap restart --name myapp
+tap restart myapp
 
 # Stop everything
-tap stop --name myapp
+tap stop myapp
 ```
 
 ## Multi-Directory Support
@@ -89,9 +89,9 @@ Services in subdirectories use a colon-separated prefix:
 ```bash
 # Start services in different directories
 cd ~/myproject
-tap run --name frontend:dev -- npm run dev    # Creates frontend/.tap/dev.sock
-tap run --name backend:api -- node server.js  # Creates backend/.tap/api.sock
-tap run --name worker -- node worker.js       # Creates .tap/worker.sock
+tap run frontend:dev -- npm run dev    # Creates frontend/.tap/dev.sock
+tap run backend:api -- node server.js  # Creates backend/.tap/api.sock
+tap run worker -- node worker.js       # Creates .tap/worker.sock
 
 # List all services from project root
 tap ls
@@ -102,9 +102,9 @@ tap ls
 # worker            running     12347     5m 25s
 
 # Query any service by name
-tap observe --name frontend:dev --last 20
-tap status --name backend:api
-tap restart --name worker
+tap observe frontend:dev --last 20
+tap status backend:api
+tap restart worker
 ```
 
 ### Disabling Discovery
@@ -113,7 +113,7 @@ Use `--tap-dir` to target a specific directory (disables recursive search):
 
 ```bash
 tap ls --tap-dir ./backend/.tap
-tap observe --name api --tap-dir ./backend/.tap
+tap observe api --tap-dir ./backend/.tap
 ```
 
 ## Commands
@@ -123,14 +123,19 @@ tap observe --name api --tap-dir ./backend/.tap
 Start a runner server and child process.
 
 ```bash
-tap run --name <service> [options] -- <command...>
+tap run <name> [options] -- <command...>
 ```
+
+**Arguments:**
+
+| Argument | Description |
+|----------|-------------|
+| `<name>` | Service name (e.g., "api" or "frontend:api") |
 
 **Options:**
 
 | Option | Description | Default |
 |--------|-------------|---------|
-| `--name <string>` | Service name (required) | - |
 | `--tap-dir <path>` | Override .tap directory | `./.tap` |
 | `--cwd <path>` | Working directory for child | Current directory |
 | `--env <KEY=VAL>` | Add/override env var (repeatable) | - |
@@ -147,16 +152,16 @@ tap run --name <service> [options] -- <command...>
 
 ```bash
 # Basic usage
-tap run --name api -- node server.js
+tap run api -- node server.js
 
 # With environment variables
-tap run --name api --env PORT=3000 --env NODE_ENV=production -- node server.js
+tap run api --env PORT=3000 --env NODE_ENV=production -- node server.js
 
 # With env file and readiness check
-tap run --name api --env-file .env --ready "listening on port" -- node server.js
+tap run api --env-file .env --ready "listening on port" -- node server.js
 
 # With PTY (for programs that need a terminal)
-tap run --name app --pty -- npm run dev
+tap run app --pty -- npm run dev
 ```
 
 ### `tap observe`
@@ -164,14 +169,19 @@ tap run --name app --pty -- npm run dev
 Fetch logs from a running service.
 
 ```bash
-tap observe --name <service> [options]
+tap observe <name> [options]
 ```
+
+**Arguments:**
+
+| Argument | Description |
+|----------|-------------|
+| `<name>` | Service name (e.g., "api" or "frontend:api") |
 
 **Options:**
 
 | Option | Description | Default |
 |--------|-------------|---------|
-| `--name <string>` | Service name (required) | - |
 | `--tap-dir <path>` | Override .tap directory | - |
 | `--since <duration>` | Events since duration ago (e.g., `5m`, `1h`) | - |
 | `--last <N>` | Last N events | `80` |
@@ -194,25 +204,25 @@ tap observe --name <service> [options]
 
 ```bash
 # Get last 100 lines (text format is default)
-tap observe --name api --last 100
+tap observe api --last 100
 
 # Get logs from the last 5 minutes
-tap observe --name api --since 5m
+tap observe api --since 5m
 
 # Search for errors
-tap observe --name api --grep "error" --case-sensitive
+tap observe api --grep "error" --case-sensitive
 
 # Get only stderr
-tap observe --name api --stream stderr
+tap observe api --stream stderr
 
 # Continuous polling (since last cursor)
-tap observe --name api --since-last
+tap observe api --since-last
 
 # With sequence numbers and stream info
-tap observe --name api --show-seq --show-stream
+tap observe api --show-seq --show-stream
 
 # JSON output
-tap observe --name api --json
+tap observe api --json
 ```
 
 **Sample output (text):**
@@ -231,14 +241,19 @@ The `---` line separates log content from metadata for easy parsing.
 Restart the child process without stopping the runner.
 
 ```bash
-tap restart --name <service> [options]
+tap restart <name> [options]
 ```
+
+**Arguments:**
+
+| Argument | Description |
+|----------|-------------|
+| `<name>` | Service name (e.g., "api" or "frontend:api") |
 
 **Options:**
 
 | Option | Description | Default |
 |--------|-------------|---------|
-| `--name <string>` | Service name (required) | - |
 | `--tap-dir <path>` | Override .tap directory | `./.tap` |
 | `--timeout <duration>` | Readiness wait timeout | `20s` |
 | `--ready <pattern>` | Substring readiness pattern | - |
@@ -251,13 +266,13 @@ tap restart --name <service> [options]
 
 ```bash
 # Simple restart
-tap restart --name api
+tap restart api
 
 # Restart with readiness check
-tap restart --name api --ready "listening on port" --timeout 30s
+tap restart api --ready "listening on port" --timeout 30s
 
 # Clear logs on restart
-tap restart --name api --clear-logs
+tap restart api --clear-logs
 ```
 
 ### `tap stop`
@@ -265,14 +280,19 @@ tap restart --name api --clear-logs
 Stop the runner and child process.
 
 ```bash
-tap stop --name <service> [options]
+tap stop <name> [options]
 ```
+
+**Arguments:**
+
+| Argument | Description |
+|----------|-------------|
+| `<name>` | Service name (e.g., "api" or "frontend:api") |
 
 **Options:**
 
 | Option | Description | Default |
 |--------|-------------|---------|
-| `--name <string>` | Service name (required) | - |
 | `--tap-dir <path>` | Override .tap directory | `./.tap` |
 | `--timeout <duration>` | Request timeout | `5s` |
 | `--grace <duration>` | Grace period before SIGKILL | `2s` |
@@ -282,10 +302,10 @@ tap stop --name <service> [options]
 
 ```bash
 # Stop a service
-tap stop --name api
+tap stop api
 
 # Stop with longer grace period
-tap stop --name api --grace 10s
+tap stop api --grace 10s
 ```
 
 ### `tap status`
@@ -293,14 +313,19 @@ tap stop --name api --grace 10s
 Get runner and child status.
 
 ```bash
-tap status --name <service> [options]
+tap status <name> [options]
 ```
+
+**Arguments:**
+
+| Argument | Description |
+|----------|-------------|
+| `<name>` | Service name (e.g., "api" or "frontend:api") |
 
 **Options:**
 
 | Option | Description | Default |
 |--------|-------------|---------|
-| `--name <string>` | Service name (required) | - |
 | `--tap-dir <path>` | Override .tap directory | `./.tap` |
 | `--timeout <duration>` | Request timeout | `5s` |
 | `--format <type>` | Output format: `json`, `text` | `json` |
@@ -309,10 +334,10 @@ tap status --name <service> [options]
 
 ```bash
 # Get status as JSON
-tap status --name api
+tap status api
 
 # Get human-readable status
-tap status --name api --format text
+tap status api --format text
 ```
 
 **Sample output (text):**

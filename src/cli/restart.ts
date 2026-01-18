@@ -11,7 +11,7 @@ export function restartCommand(program: Command): void {
   program
     .command('restart')
     .description('Restart the child process')
-    .requiredOption('--name <string>', 'Service name (e.g., "api" or "frontend:api")')
+    .argument('<name>', 'Service name (e.g., "api" or "frontend:api")')
     .option('--tap-dir <path>', 'Override .tap directory (disables recursive search)')
     .option('--timeout <duration>', 'Readiness wait timeout', '20s')
     .option('--ready <pattern>', 'Substring readiness pattern')
@@ -20,7 +20,7 @@ export function restartCommand(program: Command): void {
     .option('--clear-logs', 'Clear ring buffer on restart')
     .option('--json', 'Output JSON (default)')
     .option('--format <type>', 'Output format: json|text', 'json')
-    .action(async (opts) => {
+    .action(async (name: string, opts) => {
       // Parse durations first for immediate feedback on invalid input
       let timeoutMs: number;
       let graceMs: number;
@@ -32,7 +32,6 @@ export function restartCommand(program: Command): void {
         process.exit(1);
       }
 
-      const name = opts.name;
       const explicitTapDir = opts.tapDir ? resolve(opts.tapDir) : undefined;
       const resolved = resolveService(name, process.cwd(), explicitTapDir);
       const { socketPath } = resolved!;

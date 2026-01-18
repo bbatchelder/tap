@@ -97,7 +97,8 @@ export function runCommand(program: Command): void {
   program
     .command('run')
     .description('Start a runner server and a child process')
-    .requiredOption('--name <string>', 'Service name (e.g., "api" or "frontend:api")')
+    .argument('<name>', 'Service name (e.g., "api" or "frontend:api")')
+    .argument('<command...>', 'Command to run (use -- to separate from options)')
     .option('--tap-dir <path>', 'Override .tap directory (disables prefix-based directory)')
     .option('--cwd <path>', 'Working directory for child', process.cwd())
     .option('--env <KEY=VAL>', 'Add/override env var for child', parseEnvVar, {})
@@ -112,8 +113,7 @@ export function runCommand(program: Command): void {
     .option('--ready <pattern>', 'Substring readiness indicator')
     .option('--ready-regex <regex>', 'Regex readiness indicator')
     .option('--verbose', 'Verbose output')
-    .argument('<command...>', 'Command to run')
-    .action(async (command: string[], opts) => {
+    .action(async (name: string, command: string[], opts) => {
       // Load env file if specified
       let env = opts.env;
       if (opts.envFile) {
@@ -127,13 +127,13 @@ export function runCommand(program: Command): void {
       }
 
       // Parse service name - handle prefixed names like "frontend:api"
-      const { baseName } = parseServiceName(opts.name);
+      const { baseName } = parseServiceName(name);
 
       // Determine tap directory
       // If explicit --tap-dir, use it. Otherwise derive from prefix.
       const tapDir = opts.tapDir
         ? resolve(opts.tapDir)
-        : getTapDirForService(opts.name, process.cwd());
+        : getTapDirForService(name, process.cwd());
 
       // Default to pipes (no PTY) - use PTY only if explicitly requested
       const usePty = opts.pty === true;

@@ -26,7 +26,7 @@ export function observeCommand(program: Command): void {
   program
     .command('observe')
     .description('Fetch logs from runner')
-    .requiredOption('--name <string>', 'Service name (e.g., "api" or "frontend:api")')
+    .argument('<name>', 'Service name (e.g., "api" or "frontend:api")')
     .option('--tap-dir <path>', 'Override .tap directory (disables recursive search)')
     .option('--timeout <duration>', 'Request timeout', '5s')
     .option('--since <duration>', 'Events since duration ago')
@@ -46,7 +46,7 @@ export function observeCommand(program: Command): void {
     .option('--show-seq', 'Prepend sequence number to each line')
     .option('--show-ts', 'Prepend relative timestamp to each line')
     .option('--show-stream', 'Prepend stream (stdout/stderr) to each line')
-    .action(async (opts) => {
+    .action(async (name: string, opts) => {
       // Parse durations first for immediate feedback on invalid input
       let timeout: number;
       let sinceMs: number | undefined;
@@ -60,7 +60,6 @@ export function observeCommand(program: Command): void {
         process.exit(1);
       }
 
-      const name = opts.name;
       const explicitTapDir = opts.tapDir ? resolve(opts.tapDir) : undefined;
       const resolved = resolveService(name, process.cwd(), explicitTapDir);
       const { socketPath, tapDir } = resolved!;

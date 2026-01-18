@@ -6,10 +6,10 @@ You are using `tap`, a process supervisor with queryable logs. This guide helps 
 
 ```bash
 tap ls                                    # List all services
-tap observe --name <svc> --last 50        # View last 50 log lines
-tap observe --name <svc> --grep "error"   # Search logs for "error"
-tap restart --name <svc>                  # Restart a service
-tap status --name <svc>                   # Get detailed status
+tap observe <svc> --last 50        # View last 50 log lines
+tap observe <svc> --grep "error"   # Search logs for "error"
+tap restart <svc>                  # Restart a service
+tap status <svc>                   # Get detailed status
 ```
 
 ## When to Check Logs
@@ -29,22 +29,17 @@ Look at the STATE column. "running" means healthy.
 
 ### View recent errors
 ```bash
-tap observe --name website --last 100 --grep "error" --regex
-```
-
-### Watch logs in real-time (with follow)
-```bash
-tap observe --name website --follow --last 10
+tap observe website --last 100 --grep "error" --regex
 ```
 
 ### Check logs from the last 5 minutes
 ```bash
-tap observe --name website --since 5m
+tap observe website --since 5m
 ```
 
 ### View only stderr (errors/warnings)
 ```bash
-tap observe --name website --stream stderr --last 50
+tap observe website --stream stderr --last 50
 ```
 
 ## When to Restart Services
@@ -53,7 +48,7 @@ Not all services hot-reload. Restart when:
 
 - **Worker processes**: Background jobs typically need restart after code changes
 - **After dependency changes**: e.g., `npx prisma generate` requires server restart
-- **When a service is stuck**: `tap restart --name <svc>`
+- **When a service is stuck**: `tap restart <svc>`
 
 ## Service Names in Monorepos
 
@@ -66,6 +61,6 @@ Use `tap ls` to see all discovered services.
 ## Tips
 
 1. **Start with `tap ls`** to see what's running
-2. **Use `--last N`** to limit output (default shows all buffered logs)
+2. **Use `--last N`** to limit output (default is 80 lines)
 3. **Use `--grep`** to filter logs instead of piping through grep
 4. **Check exit codes**: Non-zero means the command failed

@@ -10,12 +10,12 @@ export function statusCommand(program: Command): void {
   program
     .command('status')
     .description('Get runner and child status')
-    .requiredOption('--name <string>', 'Service name (e.g., "api" or "frontend:api")')
+    .argument('<name>', 'Service name (e.g., "api" or "frontend:api")')
     .option('--tap-dir <path>', 'Override .tap directory (disables recursive search)')
     .option('--timeout <duration>', 'Request timeout', '5s')
     .option('--json', 'Output JSON (default)')
     .option('--format <type>', 'Output format: json|text', 'json')
-    .action(async (opts) => {
+    .action(async (name: string, opts) => {
       // Parse duration first for immediate feedback on invalid input
       let timeout: number;
       try {
@@ -25,7 +25,6 @@ export function statusCommand(program: Command): void {
         process.exit(1);
       }
 
-      const name = opts.name;
       const explicitTapDir = opts.tapDir ? resolve(opts.tapDir) : undefined;
       const resolved = resolveService(name, process.cwd(), explicitTapDir);
       const { socketPath } = resolved!;
