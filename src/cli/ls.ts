@@ -63,6 +63,8 @@ export function lsCommand(program: Command): void {
             child_state: status.child_state,
             runner_pid: status.runner_pid,
             uptime_ms: status.uptime_ms,
+            command: status.command,
+            last_log_at: status.last_log_at,
           });
         } catch {
           services.push({
@@ -77,31 +79,59 @@ export function lsCommand(program: Command): void {
         const response: ListResponse = { services };
         console.log(JSON.stringify(response, null, 2));
       } else {
-        // Calculate column width based on longest name
+        // Calculate column widths
         const maxNameLen = Math.max(20, ...services.map(s => s.name.length + 2));
+        const maxCmdLen = Math.max(20, ...services.map(s => {
+          if (!s.command || s.command.length === 0) return 1;
+          return s.command.join(' ').length + 2;
+        }));
+        const cmdColWidth = Math.min(maxCmdLen, 40); // Cap command column width
 
         // Print table format
-        console.log('NAME'.padEnd(maxNameLen) + 'STATE'.padEnd(12) + 'PID'.padEnd(10) + 'UPTIME');
-        console.log('-'.repeat(maxNameLen + 32));
+        console.log(
+          'NAME'.padEnd(maxNameLen) +
+          'STATE'.padEnd(12) +
+          'PID'.padEnd(10) +
+          'COMMAND'.padEnd(cmdColWidth) +
+          'LAST LOG'
+        );
+        console.log('-'.repeat(maxNameLen + 22 + cmdColWidth + 12));
 
         for (const svc of services) {
           if (svc.live) {
-            const uptime = formatDuration(svc.uptime_ms!);
+            const cmdStr = svc.command ? svc.command.join(' ') : '-';
+            const cmdDisplay = cmdStr.length > cmdColWidth - 2
+              ? cmdStr.slice(0, cmdColWidth - 5) + '...'
+              : cmdStr;
+            const lastLog = formatTimeAgo(svc.last_log_at);
             console.log(
               svc.name.padEnd(maxNameLen) +
               svc.child_state!.padEnd(12) +
               String(svc.runner_pid!).padEnd(10) +
-              uptime
+              cmdDisplay.padEnd(cmdColWidth) +
+              lastLog
             );
           } else {
             console.log(
               svc.name.padEnd(maxNameLen) +
               'stale'.padEnd(12) +
               '-'.padEnd(10) +
+              '-'.padEnd(cmdColWidth) +
               '-'
             );
           }
         }
       }
     });
+}
+
+function formatTimeAgo(timestamp: number | null | undefined): string {
+  if (timestamp === null || timestamp === undefined) {
+    return 'never';
+  }
+  const elapsed = Date.now() - timestamp;
+  if (elapsed < 0) {
+    return 'just now';
+  }
+  return formatDuration(elapsed) + ' ago';
 }

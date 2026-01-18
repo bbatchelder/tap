@@ -17,6 +17,39 @@ npm install
 npm run build
 ```
 
+**Platform Support:** tap requires Unix domain sockets and POSIX signals, so it runs on macOS and Linux. Windows users should use [WSL](https://learn.microsoft.com/en-us/windows/wsl/install) (Windows Subsystem for Linux).
+
+## Example Instructions for Coding Agents
+
+The `tap` command is a process supervisor with queryable logs. Use it to monitor server processes, search logs for errors, and restart services.
+
+```bash
+# List running processes
+tap ls                             # Shows name, state, PID, uptime
+
+# View process status
+tap status --name website --format text
+
+# View logs
+tap observe --name website --last 50           # Last 50 lines
+tap observe --name website --since 5m          # Logs from last 5 minutes
+tap observe --name website --stream stderr     # Only stderr output
+tap observe --name website --show-seq --show-stream  # With sequence numbers and stream labels
+
+# Search logs
+tap observe --name website --grep "error"                    # Substring search
+tap observe --name website --grep "error|warning" --regex    # Regex search
+tap observe --name website --grep "Error" --case-sensitive   # Case-sensitive
+
+# Restart a process (useful for workers that don't hot reload)
+tap restart --name website
+tap restart --name worker          # Worker process requires restart after code changes
+```
+
+**When to restart processes:**
+- **Worker processes**: Don't hot reload. After modifying worker code, use `tap restart --name worker`.
+- **Next.js server**: Restart after running `npx prisma generate` to pick up the regenerated Prisma client. Use `tap restart --name website`.
+
 ## Quick Start
 
 ```bash

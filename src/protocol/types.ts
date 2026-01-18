@@ -18,6 +18,8 @@ export interface StatusResponse {
   forward: boolean;
   buffer: BufferStats;
   last_exit: ExitInfo;
+  command: string[];
+  last_log_at: number | null;
 }
 
 export type ChildState = 'running' | 'exited' | 'stopped' | 'starting' | 'unknown';
@@ -87,6 +89,8 @@ export interface ServiceEntry {
   child_state?: ChildState;
   runner_pid?: number;
   uptime_ms?: number;
+  command?: string[];
+  last_log_at?: number | null;
   reason?: string;
 }
 

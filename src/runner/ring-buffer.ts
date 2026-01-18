@@ -191,6 +191,16 @@ export class RingBuffer {
   }
 
   /**
+   * Get the timestamp of the most recent log event, or null if no events.
+   */
+  getLastLogAt(): number | null {
+    if (this.events.length === 0) {
+      return null;
+    }
+    return this.events[this.events.length - 1].ts;
+  }
+
+  /**
    * Wait for an event matching a pattern after a given cursor.
    * Used for readiness checks during restart.
    */

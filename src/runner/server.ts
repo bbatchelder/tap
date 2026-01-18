@@ -111,6 +111,7 @@ export class RunnerServer {
 
   private handleStatus(res: ServerResponse): void {
     const childState = this.childManager.getState();
+    const childConfig = this.childManager.getConfig();
     const bufferStats = this.ringBuffer.getStats();
 
     const response: StatusResponse = {
@@ -127,6 +128,8 @@ export class RunnerServer {
         code: childState.exitCode,
         signal: childState.exitSignal,
       },
+      command: childConfig.command,
+      last_log_at: this.ringBuffer.getLastLogAt(),
     };
 
     this.sendJson(res, 200, response);
